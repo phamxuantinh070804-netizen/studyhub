@@ -98,7 +98,7 @@ class _RequestsTab extends StatelessWidget {
         maxCrossAxisExtent: 220,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 0.7,
+        childAspectRatio: 0.65,
       ),
       itemCount: requests.length,
       itemBuilder: (context, i) => _FriendCard(
@@ -154,7 +154,7 @@ class _SuggestionsTab extends StatelessWidget {
         maxCrossAxisExtent: 220,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 0.7,
+        childAspectRatio: 0.65,
       ),
       itemCount: suggestions.length,
       itemBuilder: (context, i) => _FriendCard(
@@ -243,8 +243,6 @@ class _FriendCard extends StatefulWidget {
 }
 
 class _FriendCardState extends State<_FriendCard> {
-  bool _requested = false;
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -281,7 +279,7 @@ class _FriendCardState extends State<_FriendCard> {
           Expanded(
             flex: 2,
             child: Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -297,7 +295,7 @@ class _FriendCardState extends State<_FriendCard> {
                   if (widget.isRequest) ...[
                     SizedBox(
                       width: double.infinity,
-                      height: 32,
+                      height: 30,
                       child: ElevatedButton(
                         onPressed: widget.onAccept,
                         style: ElevatedButton.styleFrom(
@@ -328,7 +326,22 @@ class _FriendCardState extends State<_FriendCard> {
                     SizedBox(
                       width: double.infinity,
                       height: 34,
-                      child: _requested
+                      child: widget.user.hasPendingRequestFrom(context
+                                      .watch<AuthBloc>()
+                                      .state is AuthAuthenticated
+                                  ? (context.watch<AuthBloc>().state
+                                          as AuthAuthenticated)
+                                      .user
+                                      .id
+                                  : '') ||
+                              widget.user.hasSentRequestTo(context
+                                      .watch<AuthBloc>()
+                                      .state is AuthAuthenticated
+                                  ? (context.watch<AuthBloc>().state
+                                          as AuthAuthenticated)
+                                      .user
+                                      .id
+                                  : '')
                           ? OutlinedButton(
                               onPressed: null,
                               style: OutlinedButton.styleFrom(
@@ -336,11 +349,10 @@ class _FriendCardState extends State<_FriendCard> {
                                 padding: EdgeInsets.zero,
                                 textStyle: const TextStyle(fontSize: 12),
                               ),
-                              child: const Text('Đã gửi'),
+                              child: const Text('Đã gửi/Chờ phản hồi'),
                             )
                           : ElevatedButton.icon(
                               onPressed: () {
-                                setState(() => _requested = true);
                                 widget.onAdd?.call();
                               },
                               icon: const Icon(Icons.person_add, size: 14),

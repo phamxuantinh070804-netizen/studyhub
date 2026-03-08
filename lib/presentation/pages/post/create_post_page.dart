@@ -188,9 +188,11 @@ class _CreatePostPageState extends State<CreatePostPage> {
                       controller: _ctrl,
                       maxLines: null,
                       autofocus: false,
-                      decoration: const InputDecoration(
-                        hintText: 'Bạn đang nghĩ gì?',
-                        hintStyle: TextStyle(fontSize: 18, color: Colors.grey),
+                      decoration: InputDecoration(
+                        hintText:
+                            'Bạn đang nghiên cứu gì thế, ${user?.name ?? ''}?',
+                        hintStyle:
+                            const TextStyle(fontSize: 18, color: Colors.grey),
                         border: InputBorder.none,
                       ),
                       style: const TextStyle(fontSize: 18),

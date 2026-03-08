@@ -186,6 +186,7 @@ class HiveLocalDatasource {
         'comments': p.comments.map((c) => _commentToJson(c)).toList(),
         'createdAt': p.createdAt.toIso8601String(),
         'isPublic': p.isPublic,
+        'sharedPost': p.sharedPost != null ? _postToJson(p.sharedPost!) : null,
       };
 
   PostEntity _postFromJson(Map<String, dynamic> m) => PostEntity(
@@ -209,6 +210,9 @@ class HiveLocalDatasource {
             .toList(),
         createdAt: DateTime.parse(m['createdAt']),
         isPublic: m['isPublic'] ?? true,
+        sharedPost: m['sharedPost'] != null
+            ? _postFromJson(Map<String, dynamic>.from(m['sharedPost']))
+            : null,
       );
 
   Map<String, dynamic> _commentToJson(CommentEntity c) => {

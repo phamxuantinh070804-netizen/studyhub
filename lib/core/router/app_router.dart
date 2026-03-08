@@ -13,6 +13,8 @@ import '../../presentation/pages/post/create_post_page.dart';
 import '../../presentation/pages/post/post_detail_page.dart';
 import '../../presentation/pages/search/search_page.dart';
 import '../../presentation/pages/chat/chat_page.dart';
+import '../../presentation/pages/chat/chat_list_page.dart';
+import '../../presentation/pages/reels/reels_page.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
 final _shellKey = GlobalKey<NavigatorState>();
@@ -42,6 +44,7 @@ class AppRouter {
           builder: (_, __, child) => MainShell(child: child),
           routes: [
             GoRoute(path: '/', builder: (_, __) => const HomePage()),
+            GoRoute(path: '/reels', builder: (_, __) => const ReelsPage()),
             GoRoute(path: '/friends', builder: (_, __) => const FriendsPage()),
             GoRoute(
                 path: '/notifications',
@@ -69,6 +72,10 @@ class AppRouter {
             path: '/chat/:userId',
             builder: (_, s) =>
                 ChatPage(otherUserId: s.pathParameters['userId']!)),
+        GoRoute(
+            parentNavigatorKey: _rootKey,
+            path: '/chat',
+            builder: (_, __) => const ChatListPage()),
       ],
     );
   }

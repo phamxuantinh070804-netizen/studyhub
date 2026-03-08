@@ -201,11 +201,9 @@ class _UserTile extends StatefulWidget {
 }
 
 class _UserTileState extends State<_UserTile> {
-  bool _localSent = false;
-
   @override
   Widget build(BuildContext context) {
-    final auth = context.read<AuthBloc>().state;
+    final auth = context.watch<AuthBloc>().state;
     final uid = auth is AuthAuthenticated ? auth.user.id : '';
     final isMe = uid == widget.user.id;
     final isFriend =
@@ -250,7 +248,7 @@ class _UserTileState extends State<_UserTile> {
                             side:
                                 const BorderSide(color: AppTheme.borderColor)),
                         child: const Text('Bạn bè'))
-                    : (_localSent || hasSent)
+                    : hasSent
                         ? OutlinedButton(
                             onPressed: () =>
                                 context.push('/profile/${widget.user.id}'),
@@ -259,7 +257,6 @@ class _UserTileState extends State<_UserTile> {
                             child: const Text('Đã gửi'))
                         : ElevatedButton.icon(
                             onPressed: () {
-                              setState(() => _localSent = true);
                               context.read<FriendBloc>().add(
                                   SendFriendRequestEvent(
                                       fromId: uid, toId: widget.user.id));

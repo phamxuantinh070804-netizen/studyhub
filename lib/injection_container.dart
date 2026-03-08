@@ -38,7 +38,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetFriendsUseCase(sl()));
   sl.registerLazySingleton(() => GetSuggestionsUseCase(sl()));
 
-  sl.registerFactory(() => AuthBloc(
+  sl.registerLazySingleton(() => AuthBloc(
       loginUseCase: sl(),
       registerUseCase: sl(),
       logoutUseCase: sl(),

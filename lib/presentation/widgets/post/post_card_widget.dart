@@ -13,6 +13,7 @@ class PostCardWidget extends StatelessWidget {
   final ReactionCallback onReact;
   final VoidCallback onComment;
   final VoidCallback onTapAuthor;
+  final VoidCallback onShare;
 
   const PostCardWidget({
     super.key,
@@ -21,6 +22,7 @@ class PostCardWidget extends StatelessWidget {
     required this.onReact,
     required this.onComment,
     required this.onTapAuthor,
+    required this.onShare,
   });
 
   @override
@@ -62,6 +64,7 @@ class PostCardWidget extends StatelessWidget {
                   style: const TextStyle(fontSize: 15, height: 1.3)),
             ),
           if (post.mediaUrls.isNotEmpty) _buildMediaContent(),
+          if (post.sharedPost != null) _buildSharedPostContent(),
           // Reaction & Comment summary
           if (post.likeCount > 0 || post.commentCount > 0)
             Padding(
@@ -98,7 +101,7 @@ class PostCardWidget extends StatelessWidget {
               _ActionButton(
                 icon: Icons.share_outlined,
                 label: 'Chia sẻ',
-                onTap: () {},
+                onTap: onShare,
               ),
             ],
           ),
@@ -179,6 +182,57 @@ class PostCardWidget extends StatelessWidget {
                   errorBuilder: (_, __, ___) => _errorIcon()),
         );
       }),
+    );
+  }
+
+  Widget _buildSharedPostContent() {
+    final shared = post.sharedPost!;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+            leading: AvatarWidget(
+                name: shared.authorName,
+                imageUrl: shared.authorAvatar,
+                radius: 16),
+            title: Text(shared.authorName,
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            subtitle: Text(timeago.format(shared.createdAt, locale: 'vi'),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+          ),
+          if (shared.content != null && shared.content!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+              child:
+                  Text(shared.content!, style: const TextStyle(fontSize: 14)),
+            ),
+          if (shared.mediaUrls.isNotEmpty)
+            Column(
+              children: List.generate(shared.mediaUrls.length, (index) {
+                final url = shared.mediaUrls[index];
+                final type = shared.mediaTypes.length > index
+                    ? shared.mediaTypes[index]
+                    : 'image';
+                if (type == 'video') return _VideoPlayerWidget(url: url);
+                return url.startsWith('http')
+                    ? Image.network(url,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _errorIcon())
+                    : Image.file(File(url),
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _errorIcon());
+              }),
+            ),
+        ],
+      ),
     );
   }
 

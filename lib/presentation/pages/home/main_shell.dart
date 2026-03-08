@@ -58,7 +58,7 @@ class _MainShellState extends State<MainShell> {
     final auth = context.read<AuthBloc>().state;
     if (auth is! AuthAuthenticated) return;
     if (i == 0) context.go('/');
-    if (i == 1) {} // Reels
+    if (i == 1) context.go('/reels');
     if (i == 2) context.go('/friends');
     if (i == 3) context.go('/notifications');
     if (i == 4) {
@@ -183,10 +183,14 @@ class _MainShellState extends State<MainShell> {
                         context.pop();
                         context.go('/friends');
                       }),
-                  const _DrawerItem(
+                  _DrawerItem(
                       icon: Icons.ondemand_video,
                       label: 'Thước phim',
-                      color: Colors.red),
+                      color: Colors.red,
+                      onTap: () {
+                        context.pop();
+                        context.go('/reels');
+                      }),
                   const Divider(),
                   const _DrawerItem(
                       icon: Icons.help, label: 'Trợ giúp và hỗ trợ'),

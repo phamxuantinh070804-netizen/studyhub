@@ -48,7 +48,8 @@ class _HomePageState extends State<HomePage> {
           icon: const Icon(Icons.menu, color: Colors.black, size: 28),
           onPressed: () => Scaffold.of(context).openDrawer(),
         ),
-        centerTitle: true,
+        centerTitle: false,
+        titleSpacing: 0,
         title: const Text('studyhub',
             style: TextStyle(
                 color: Color(0xFF1877F2),
@@ -61,7 +62,8 @@ class _HomePageState extends State<HomePage> {
               onTap: () => context.push('/create-post')),
           _CircleButton(
               icon: Icons.search, onTap: () => context.push('/search')),
-          _CircleButton(icon: Icons.messenger, onTap: () {}),
+          _CircleButton(
+              icon: Icons.messenger, onTap: () => context.push('/chat')),
         ],
       ),
       body: RefreshIndicator(
@@ -106,8 +108,10 @@ class _HomePageState extends State<HomePage> {
                       borderRadius: BorderRadius.circular(30),
                       border: Border.all(color: Colors.grey.shade300),
                     ),
-                    child: const Text('Bạn đang nghĩ gì?',
-                        style: TextStyle(color: Colors.black, fontSize: 16)),
+                    child: Text(
+                        'Bạn đang nghiên cứu gì thế, ${user?.name ?? ''}?',
+                        style:
+                            const TextStyle(color: Colors.black, fontSize: 16)),
                   ),
                 ),
               ),
@@ -150,6 +154,45 @@ class _HomePageState extends State<HomePage> {
                           onComment: () => context.push('/post/${post.id}'),
                           onTapAuthor: () =>
                               context.push('/profile/${post.authorId}'),
+                          onShare: () {
+                            if (auth is AuthAuthenticated) {
+                              showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Chia sẻ bài viết'),
+                                  content: const Text(
+                                      'Bạn có chắc chắn muốn chia sẻ bài viết này lên trang cá nhân không?'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Hủy',
+                                          style: TextStyle(color: Colors.grey)),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                        context
+                                            .read<PostBloc>()
+                                            .add(SharePostEvent(
+                                              originalPostId: post.id,
+                                              userId: auth.user.id,
+                                              userName: auth.user.name,
+                                              userAvatar: auth.user.avatarUrl,
+                                            ));
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                              content: Text(
+                                                  'Đã chia sẻ bài viết thành công!')),
+                                        );
+                                      },
+                                      child: const Text('Chia sẻ ngay'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                          },
                         );
                       },
                     ))

@@ -56,6 +56,7 @@ class FakeRemoteDatasource {
     String? content,
     List<String> mediaUrls = const [],
     List<String> mediaTypes = const [],
+    PostEntity? sharedPost,
   }) async {
     await _delay();
     final post = PostEntity(
@@ -67,6 +68,7 @@ class FakeRemoteDatasource {
       mediaUrls: mediaUrls,
       mediaTypes: mediaTypes,
       createdAt: DateTime.now(),
+      sharedPost: sharedPost,
     );
     await _local.savePost(post);
     return post;

@@ -23,9 +23,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  bool _localSent = false;
-  bool _localAccepted = false;
-  bool _localDeclined = false;
   final _picker = ImagePicker();
 
   void _showLogoutDialog(BuildContext context) {
@@ -74,7 +71,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     final local = di.sl<HiveLocalDatasource>();
     final profileUser = local.getUserById(widget.userId);
-    final auth = context.read<AuthBloc>().state;
+    final auth = context.watch<AuthBloc>().state;
     final currentUser = auth is AuthAuthenticated ? auth.user : null;
     final isMe = currentUser?.id == widget.userId;
 
@@ -87,18 +84,9 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     bool isFriend = currentUser?.isFriendWith(widget.userId) ?? false;
-    bool hasSent =
-        (currentUser?.hasSentRequestTo(widget.userId) ?? false) || _localSent;
+    bool hasSent = currentUser?.hasSentRequestTo(widget.userId) ?? false;
     bool hasPending =
         currentUser?.hasPendingRequestFrom(widget.userId) ?? false;
-
-    if (_localAccepted) {
-      isFriend = true;
-      hasPending = false;
-    }
-    if (_localDeclined) {
-      hasPending = false;
-    }
 
     return Scaffold(
       backgroundColor: AppTheme.bgGrey,
@@ -173,7 +161,8 @@ class _ProfilePageState extends State<ProfilePage> {
           flexibleSpace: FlexibleSpaceBar(
             background: Stack(fit: StackFit.expand, children: [
               GestureDetector(
-                onTap: isMe ? () => _updatePhoto(false, displayUser) : null,
+                onTap:
+                    null, // Vô hiệu hóa đổi ảnh trực tiếp, dùng nút Chỉnh sửa
                 child: Container(
                   color: Colors.grey.shade300,
                   child: displayUser.coverUrl != null
@@ -198,7 +187,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 bottom: 0,
                 left: 16,
                 child: GestureDetector(
-                  onTap: isMe ? () => _updatePhoto(true, displayUser) : null,
+                  onTap:
+                      null, // Vô hiệu hóa đổi ảnh trực tiếp, dùng nút Chỉnh sửa
                   child: Container(
                     decoration: BoxDecoration(
                         shape: BoxShape.circle,
@@ -255,23 +245,51 @@ class _ProfilePageState extends State<ProfilePage> {
               Row(children: [
                 Expanded(
                     child: ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: () => context.push('/create-post'),
                   icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Thêm vào tin'),
+                  label: const Text('Đăng bài'),
                   style: ElevatedButton.styleFrom(
                       minimumSize: const Size(0, 40),
                       backgroundColor: AppTheme.primaryBlue),
                 )),
                 const SizedBox(width: 8),
                 Expanded(
-                    child: OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: const Text('Chỉnh sửa'),
-                  style: OutlinedButton.styleFrom(
+                    child: ElevatedButton.icon(
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      builder: (ctx) => Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.photo_camera),
+                            title: const Text('Chỉnh sửa ảnh đại diện'),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _updatePhoto(true, displayUser);
+                            },
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.photo),
+                            title: const Text('Chỉnh sửa ảnh bìa'),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _updatePhoto(false, displayUser);
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.edit, size: 18, color: Colors.black87),
+                  label: const Text('Chỉnh sửa',
+                      style: TextStyle(color: Colors.black87)),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade200,
                       minimumSize: const Size(0, 40),
-                      foregroundColor: AppTheme.textDark,
-                      side: const BorderSide(color: AppTheme.borderColor)),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6))),
                 )),
               ])
             else
@@ -309,6 +327,43 @@ class _ProfilePageState extends State<ProfilePage> {
                         reactionType: type)),
                 onComment: () => context.push('/post/${userPosts[i].id}'),
                 onTapAuthor: () {},
+                onShare: () {
+                  final authState = context.read<AuthBloc>().state;
+                  if (authState is AuthAuthenticated) {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Chia sẻ bài viết'),
+                        content: const Text(
+                            'Bạn có chắc chắn muốn chia sẻ bài viết này lên trang cá nhân không?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Hủy',
+                                style: TextStyle(color: Colors.grey)),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              context.read<PostBloc>().add(SharePostEvent(
+                                    originalPostId: userPosts[i].id,
+                                    userId: authState.user.id,
+                                    userName: authState.user.name,
+                                    userAvatar: authState.user.avatarUrl,
+                                  ));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text(
+                                        'Đã chia sẻ bài viết thành công!')),
+                              );
+                            },
+                            child: const Text('Chia sẻ ngay'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                },
               ),
             ),
             childCount: userPosts.length,
@@ -342,7 +397,6 @@ class _ProfilePageState extends State<ProfilePage> {
         Expanded(
             child: ElevatedButton(
                 onPressed: () {
-                  setState(() => _localAccepted = true);
                   context.read<FriendBloc>().add(RespondFriendRequestEvent(
                       fromId: profileUser.id,
                       toId: currentUser!.id,
@@ -356,7 +410,6 @@ class _ProfilePageState extends State<ProfilePage> {
         Expanded(
             child: OutlinedButton(
                 onPressed: () {
-                  setState(() => _localDeclined = true);
                   context.read<FriendBloc>().add(RespondFriendRequestEvent(
                       fromId: profileUser.id,
                       toId: currentUser!.id,
@@ -374,7 +427,6 @@ class _ProfilePageState extends State<ProfilePage> {
         onPressed: hasSent
             ? null
             : () {
-                setState(() => _localSent = true);
                 context.read<FriendBloc>().add(SendFriendRequestEvent(
                     fromId: currentUser!.id, toId: profileUser.id));
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
