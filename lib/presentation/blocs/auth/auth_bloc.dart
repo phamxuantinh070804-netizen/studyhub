@@ -32,9 +32,18 @@ class RegisterEvent extends AuthEvent {
 
 class LogoutEvent extends AuthEvent {}
 
+class SyncDataEvent extends AuthEvent {
+  final String userId;
+  SyncDataEvent(this.userId);
+  @override
+  List<Object?> get props => [userId];
+}
+
 class UpdateUserEvent extends AuthEvent {
   final UserEntity user;
   UpdateUserEvent(this.user);
+  @override
+  List<Object?> get props => [user];
 }
 
 // States
@@ -81,6 +90,42 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<RegisterEvent>(_onRegister);
     on<LogoutEvent>(_onLogout);
     on<UpdateUserEvent>(_onUpdateUser);
+    on<SyncDataEvent>(_onSyncData);
+  }
+
+  Future<void> _onSyncData(SyncDataEvent event, Emitter<AuthState> emit) async {
+    try {
+      final remote = di.sl<SupabaseRemoteDatasource>();
+      final posts =
+          local.getAllPosts().where((p) => p.authorId == event.userId);
+      for (var p in posts) {
+        if (!p.id.startsWith('welcome')) {
+          try {
+            await remote.createPost(
+              authorId: p.authorId,
+              authorName: p.authorName,
+              authorAvatar: p.authorAvatar,
+              content: p.content,
+              mediaUrls: p.mediaUrls,
+              mediaTypes: p.mediaTypes,
+            );
+          } catch (_) {}
+        }
+      }
+
+      final allUsers = local.getAllUsers();
+      for (var otherUser in allUsers) {
+        if (otherUser.id == event.userId) continue;
+        final msgs = local.getMessagesBetween(event.userId, otherUser.id);
+        for (var m in msgs) {
+          try {
+            await remote.sendMessage(m.senderId, m.receiverId, m.content);
+          } catch (_) {}
+        }
+      }
+    } catch (e) {
+      debugPrint('Sync error: $e');
+    }
   }
 
   Future<void> _onCheckAuth(

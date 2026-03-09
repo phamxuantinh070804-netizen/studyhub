@@ -3,7 +3,6 @@ import 'package:equatable/equatable.dart';
 import '../../../domain/entities/notification_entity.dart';
 import '../../../data/datasources/local/hive_local_datasource.dart';
 import '../../../data/datasources/remote/supabase_remote_datasource.dart';
-import '../../../injection_container.dart' as di;
 
 abstract class NotificationEvent extends Equatable {
   @override
@@ -36,18 +35,23 @@ class NotifLoaded extends NotificationState {
 }
 
 class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
-  final HiveLocalDatasource local;
-  NotificationBloc({required this.local}) : super(NotifInitial()) {
+  final SupabaseRemoteDatasource remoteDatasource;
+  final HiveLocalDatasource localDatasource;
+
+  NotificationBloc({
+    required this.remoteDatasource,
+    required this.localDatasource,
+  }) : super(NotifInitial()) {
     on<LoadNotificationsEvent>((event, emit) async {
       // Fast emit local
-      final localNotifs = local.getNotificationsForUser(event.userId);
+      final localNotifs = localDatasource.getNotificationsForUser(event.userId);
       emit(NotifLoaded(localNotifs));
 
       try {
-        final remote = di.sl<SupabaseRemoteDatasource>();
-        final freshNotifs = await remote.getNotifications(event.userId);
+        final freshNotifs =
+            await remoteDatasource.getNotifications(event.userId);
         for (var n in freshNotifs) {
-          await local.saveNotification(n);
+          await localDatasource.saveNotification(n);
         }
         if (!isClosed) emit(NotifLoaded(freshNotifs));
       } catch (e) {
@@ -56,11 +60,10 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     });
 
     on<MarkReadEvent>((event, emit) async {
-      await local.markNotifRead(event.id);
+      await localDatasource.markNotifRead(event.id);
 
       try {
-        final remote = di.sl<SupabaseRemoteDatasource>();
-        await remote.markNotificationRead(event.id);
+        await remoteDatasource.markNotificationRead(event.id);
       } catch (_) {}
 
       if (state is NotifLoaded) {

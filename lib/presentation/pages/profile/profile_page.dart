@@ -200,12 +200,31 @@ class _ProfilePageState extends State<ProfilePage> {
                       color: Colors.white, size: 20),
                   onSelected: (value) {
                     if (value == 'logout') _showLogoutDialog(context);
+                    if (value == 'sync' && isMe) {
+                      context
+                          .read<AuthBloc>()
+                          .add(SyncDataEvent(displayUser.id));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content:
+                                Text('Đang đồng bộ dữ liệu lên máy chủ...'),
+                            behavior: SnackBarBehavior.floating),
+                      );
+                    }
                     if (value == 'update_cover' && isMe) {
                       _updatePhoto(false, displayUser);
                     }
                   },
                   itemBuilder: (ctx) => [
                     if (isMe) ...[
+                      const PopupMenuItem(
+                        value: 'sync',
+                        child: Row(children: [
+                          Icon(Icons.sync, size: 20),
+                          SizedBox(width: 8),
+                          Text('Đồng bộ dữ liệu'),
+                        ]),
+                      ),
                       const PopupMenuItem(
                         value: 'update_cover',
                         child: Row(children: [

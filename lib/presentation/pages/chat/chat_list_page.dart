@@ -2,30 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../blocs/auth/auth_bloc.dart';
-import '../../../domain/entities/user_entity.dart';
-import '../../../data/datasources/local/hive_local_datasource.dart';
-import '../../../injection_container.dart' as di;
+import '../../blocs/friend/friend_bloc.dart';
 import '../../widgets/common/avatar_widget.dart';
 
-class ChatListPage extends StatelessWidget {
+class ChatListPage extends StatefulWidget {
   const ChatListPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final authState = context.watch<AuthBloc>().state;
-    if (authState is! AuthAuthenticated) {
-      return const Scaffold(body: Center(child: Text('Please login')));
+  State<ChatListPage> createState() => _ChatListPageState();
+}
+
+class _ChatListPageState extends State<ChatListPage> {
+  @override
+  void initState() {
+    super.initState();
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) {
+      context.read<FriendBloc>().add(LoadFriendsEvent(authState.user.id));
     }
+  }
 
-    final currentUser = authState.user;
-    final friendIds = currentUser.friendIds;
-    final local = di.sl<HiveLocalDatasource>();
-
-    final friends = friendIds
-        .map((id) => local.getUserById(id))
-        .whereType<UserEntity>()
-        .toList();
-
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -41,32 +39,44 @@ class ChatListPage extends StatelessWidget {
           ),
         ],
       ),
-      body: friends.isEmpty
-          ? const Center(
+      body: BlocBuilder<FriendBloc, FriendState>(
+        builder: (context, state) {
+          if (state is FriendLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final friends = state is FriendLoaded ? state.friends : [];
+
+          if (friends.isEmpty) {
+            return const Center(
               child: Text('Bạn chưa có người bạn nào để nhắn tin.',
                   style: TextStyle(color: Colors.grey, fontSize: 16)),
-            )
-          : ListView.builder(
-              itemCount: friends.length,
-              itemBuilder: (context, index) {
-                final friend = friends[index];
-                return ListTile(
-                  leading: AvatarWidget(
-                    name: friend.name,
-                    imageUrl: friend.avatarUrl,
-                    radius: 26,
-                  ),
-                  title: Text(friend.name,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16)),
-                  subtitle: const Text('Nhấn để trò chuyện',
-                      style: TextStyle(color: Colors.grey, fontSize: 14)),
-                  onTap: () {
-                    context.push('/chat/${friend.id}');
-                  },
-                );
-              },
-            ),
+            );
+          }
+
+          return ListView.builder(
+            itemCount: friends.length,
+            itemBuilder: (context, index) {
+              final friend = friends[index];
+              return ListTile(
+                leading: AvatarWidget(
+                  name: friend.name,
+                  imageUrl: friend.avatarUrl,
+                  radius: 26,
+                ),
+                title: Text(friend.name,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16)),
+                subtitle: const Text('Nhấn để trò chuyện',
+                    style: TextStyle(color: Colors.grey, fontSize: 14)),
+                onTap: () {
+                  context.push('/chat/${friend.id}');
+                },
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }

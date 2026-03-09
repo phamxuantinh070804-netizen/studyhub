@@ -51,7 +51,9 @@ Future<void> init() async {
         getFriendsUseCase: sl(),
         getSuggestionsUseCase: sl(),
       ));
-  sl.registerFactory(() => NotificationBloc(local: sl()));
+  sl.registerFactory(
+      () => NotificationBloc(remoteDatasource: sl(), localDatasource: sl()));
   sl.registerFactory(() => SearchBloc(repository: sl()));
-  sl.registerFactory(() => ChatBloc(localDatasource: sl()));
+  sl.registerFactory(
+      () => ChatBloc(remoteDatasource: sl(), localDatasource: sl()));
 }

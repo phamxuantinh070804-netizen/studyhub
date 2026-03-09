@@ -17,7 +17,7 @@ class PostRepositoryImpl implements PostRepository {
 
   @override
   Future<List<PostEntity>> getUserPosts(String userId) async {
-    return local.getAllPosts().where((p) => p.authorId == userId).toList();
+    return remote.getUserPosts(userId);
   }
 
   @override
@@ -118,8 +118,9 @@ class FriendRepositoryImpl implements FriendRepository {
 
   @override
   Future<List<NotificationEntity>> getNotifications(String userId) async =>
-      local.getNotificationsForUser(userId);
+      remote.getNotifications(userId);
 
   @override
-  Future<void> markNotificationRead(String id) => local.markNotifRead(id);
+  Future<void> markNotificationRead(String id) =>
+      remote.markNotificationRead(id);
 }

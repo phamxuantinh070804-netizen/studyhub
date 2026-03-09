@@ -433,6 +433,23 @@ class SupabaseRemoteDatasource {
   // ---------------------------------------------------------------------------
 
   Future<void> sendFriendRequest(String fromId, String toId) async {
+    // Check if already friends
+    final existingFriend = await _supabase
+        .from('friendships')
+        .select()
+        .eq('user_id_1', fromId)
+        .eq('user_id_2', toId)
+        .maybeSingle();
+    if (existingFriend != null) return;
+
+    // Check if request already exists
+    final existingRequest = await _supabase
+        .from('friend_requests')
+        .select()
+        .or('and(from_id.eq.$fromId,to_id.eq.$toId),and(from_id.eq.$toId,to_id.eq.$fromId)')
+        .maybeSingle();
+    if (existingRequest != null) return;
+
     await _supabase
         .from('friend_requests')
         .insert({'from_id': fromId, 'to_id': toId});
@@ -445,23 +462,18 @@ class SupabaseRemoteDatasource {
   }
 
   Future<void> acceptFriendRequest(String fromId, String toId) async {
-    await _supabase.from('friendships').insert([
+    await _supabase.from('friendships').upsert([
       {'user_id_1': fromId, 'user_id_2': toId},
       {'user_id_1': toId, 'user_id_2': fromId} // Bidirectional
     ]);
-    await _supabase
-        .from('friend_requests')
-        .delete()
-        .eq('from_id', fromId)
-        .eq('to_id', toId);
+    // Delete any requests between these two users in either direction
+    await _supabase.from('friend_requests').delete().or(
+        'and(from_id.eq.$fromId,to_id.eq.$toId),and(from_id.eq.$toId,to_id.eq.$fromId)');
   }
 
   Future<void> declineFriendRequest(String fromId, String toId) async {
-    await _supabase
-        .from('friend_requests')
-        .delete()
-        .eq('from_id', fromId)
-        .eq('to_id', toId);
+    await _supabase.from('friend_requests').delete().or(
+        'and(from_id.eq.$fromId,to_id.eq.$toId),and(from_id.eq.$toId,to_id.eq.$fromId)');
   }
 
   Future<void> unfriend(String userId1, String userId2) async {
@@ -481,7 +493,27 @@ class SupabaseRemoteDatasource {
 
     final List<UserEntity> users = [];
     for (final row in data) {
-      final user = await getUserById(row['from_id']);
+      final fromId = row['from_id'];
+
+      // Secondary check: are they already friends?
+      final isFriend = await _supabase
+          .from('friendships')
+          .select()
+          .eq('user_id_1', userId)
+          .eq('user_id_2', fromId)
+          .maybeSingle();
+
+      if (isFriend != null) {
+        // Cleanup stale request if it still exists
+        await _supabase
+            .from('friend_requests')
+            .delete()
+            .eq('from_id', fromId)
+            .eq('to_id', userId);
+        continue;
+      }
+
+      final user = await getUserById(fromId);
       if (user != null) {
         users.add(user);
       }
@@ -506,46 +538,77 @@ class SupabaseRemoteDatasource {
   }
 
   Future<List<UserEntity>> getSuggestions(String userId) async {
-    // Get current friends to exclude them
-    final friendRows = await _supabase
+    // 1. Get friend IDs
+    final friendsData = await _supabase
         .from('friendships')
         .select('user_id_2')
         .eq('user_id_1', userId);
-    final friendIds =
-        friendRows.map<String>((r) => r['user_id_2'] as String).toList();
-    friendIds.add(userId); // Exclude self
+    final friendIds = friendsData.map((e) => e['user_id_2'] as String).toList();
 
-    // Get pending requests to exclude
-    final reqRows = await _supabase
+    // 2. Get sent request IDs
+    final sentData = await _supabase
         .from('friend_requests')
         .select('to_id')
         .eq('from_id', userId);
-    final pendingIds =
-        reqRows.map<String>((r) => r['to_id'] as String).toList();
+    final sentIds = sentData.map((e) => e['to_id'] as String).toList();
 
-    final excludeIds = {...friendIds, ...pendingIds};
+    // 3. Get received request IDs
+    final receivedData = await _supabase
+        .from('friend_requests')
+        .select('from_id')
+        .eq('to_id', userId);
+    final receivedIds =
+        receivedData.map((e) => e['from_id'] as String).toList();
 
-    // Fetch all users, filter out friends/self/pending
-    final allUsers = await _supabase.from('users').select().limit(20);
-    return allUsers
-        .where((u) => !excludeIds.contains(u['id']))
-        .map<UserEntity>((u) => UserEntity(
-              id: u['id'],
-              name: u['name'] ?? '',
-              email: u['email'] ?? '',
-              avatarUrl: u['avatar_url'],
-              coverUrl: u['cover_url'],
-              bio: u['bio'],
-              createdAt: DateTime.parse(
-                  u['created_at'] ?? DateTime.now().toIso8601String()),
-            ))
-        .toList();
+    // 4. Combine all IDs to exclude
+    final excludeIds = {userId, ...friendIds, ...sentIds, ...receivedIds};
+
+    // 5. Fetch users excluding those IDs
+    final allUsersData = await _supabase
+        .from('users')
+        .select()
+        .not('id', 'in', excludeIds.toList())
+        .limit(20);
+
+    final List<UserEntity> suggestions = [];
+    for (var u in allUsersData) {
+      final user = await getUserById(u['id']);
+      if (user != null) {
+        suggestions.add(user);
+      }
+    }
+    return suggestions;
   }
 
   Future<void> deletePost(String postId) async {
     // Delete comments first (foreign key constraint)
     await _supabase.from('comments').delete().eq('post_id', postId);
     await _supabase.from('posts').delete().eq('id', postId);
+  }
+
+  Future<List<PostEntity>> getUserPosts(String userId) async {
+    final data = await _supabase
+        .from('posts')
+        .select()
+        .eq('author_id', userId)
+        .order('created_at', ascending: false);
+
+    final List<PostEntity> posts = [];
+    for (final p in data) {
+      final authorUser = await getUserById(p['author_id']);
+      posts.add(PostEntity(
+        id: p['id'],
+        authorId: p['author_id'],
+        authorName: authorUser?.name ?? 'Unknown',
+        authorAvatar: authorUser?.avatarUrl,
+        content: p['content'],
+        mediaUrls: List<String>.from(p['media_urls'] ?? []),
+        mediaTypes: List<String>.from(p['media_types'] ?? []),
+        likedByIds: List<String>.from(p['liked_by_ids'] ?? []),
+        createdAt: DateTime.parse(p['created_at']),
+      ));
+    }
+    return posts;
   }
 
   // ---------------------------------------------------------------------------

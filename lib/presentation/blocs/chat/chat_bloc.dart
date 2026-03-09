@@ -3,15 +3,18 @@ import 'package:uuid/uuid.dart';
 import '../../../../data/datasources/local/hive_local_datasource.dart';
 import '../../../../data/datasources/remote/supabase_remote_datasource.dart';
 import '../../../../domain/entities/message_entity.dart';
-import '../../../../injection_container.dart' as di;
 import 'chat_event.dart';
 import 'chat_state.dart';
 
 class ChatBloc extends Bloc<ChatEvent, ChatState> {
+  final SupabaseRemoteDatasource remoteDatasource;
   final HiveLocalDatasource localDatasource;
   final Uuid _uuid = const Uuid();
 
-  ChatBloc({required this.localDatasource}) : super(ChatInitial()) {
+  ChatBloc({
+    required this.remoteDatasource,
+    required this.localDatasource,
+  }) : super(ChatInitial()) {
     on<LoadMessagesEvent>(_onLoadMessages);
     on<SendMessageEvent>(_onSendMessage);
   }
@@ -19,7 +22,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   Future<void> _onLoadMessages(
       LoadMessagesEvent event, Emitter<ChatState> emit) async {
     try {
-      if (state is! ChatLoaded) {
+      if (state is! ChatLoading) {
         emit(ChatLoading());
       }
       // Fast load from local
@@ -31,9 +34,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
       // Fetch from Supabase
       try {
-        final remote = di.sl<SupabaseRemoteDatasource>();
-        final remoteMsgs =
-            await remote.getMessages(event.currentUserId, event.otherUserId);
+        final remoteMsgs = await remoteDatasource.getMessages(
+            event.currentUserId, event.otherUserId);
 
         // Save to local cache
         for (final msg in remoteMsgs) {
@@ -71,8 +73,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       }
 
       // Send to Supabase
-      final remote = di.sl<SupabaseRemoteDatasource>();
-      final savedRemote = await remote.sendMessage(
+      final savedRemote = await remoteDatasource.sendMessage(
           event.currentUserId, event.otherUserId, event.content);
       await localDatasource.saveMessage(savedRemote);
     } catch (e) {
