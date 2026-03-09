@@ -25,4 +25,5 @@ abstract class PostRepository {
       String postId, String commentId, String userId);
   Future<PostEntity?> getPostById(String postId);
   Future<Map<String, dynamic>> search(String query, String userId);
+  Future<void> deletePost(String postId);
 }

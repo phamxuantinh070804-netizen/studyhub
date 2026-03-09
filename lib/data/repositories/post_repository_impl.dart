@@ -4,10 +4,10 @@ import '../../domain/entities/notification_entity.dart';
 import '../../domain/repositories/post_repository.dart';
 import '../../domain/repositories/friend_repository.dart';
 import '../datasources/local/hive_local_datasource.dart';
-import '../datasources/remote/fake_remote_datasource.dart';
+import '../datasources/remote/supabase_remote_datasource.dart';
 
 class PostRepositoryImpl implements PostRepository {
-  final FakeRemoteDatasource remote;
+  final SupabaseRemoteDatasource remote;
   final HiveLocalDatasource local;
   PostRepositoryImpl({required this.remote, required this.local});
 
@@ -68,16 +68,24 @@ class PostRepositoryImpl implements PostRepository {
       remote.likeComment(postId, commentId, userId);
 
   @override
-  Future<PostEntity?> getPostById(String postId) async =>
-      local.getPostById(postId);
+  Future<PostEntity?> getPostById(String postId) async {
+    try {
+      return await remote.getPostById(postId);
+    } catch (e) {
+      return local.getPostById(postId);
+    }
+  }
 
   @override
   Future<Map<String, dynamic>> search(String query, String userId) =>
       remote.search(query, userId);
+
+  @override
+  Future<void> deletePost(String postId) => remote.deletePost(postId);
 }
 
 class FriendRepositoryImpl implements FriendRepository {
-  final FakeRemoteDatasource remote;
+  final SupabaseRemoteDatasource remote;
   final HiveLocalDatasource local;
   FriendRepositoryImpl({required this.remote, required this.local});
 

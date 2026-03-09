@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'data/datasources/local/hive_local_datasource.dart';
@@ -15,6 +16,13 @@ import 'presentation/blocs/chat/chat_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Supabase
+  await Supabase.initialize(
+    url: 'https://qzxmrdfuhrsmtdaalsvl.supabase.co',
+    anonKey: 'sb_publishable_gLovle81HAeXHFQVG3bV1Q_eEhIWuzT',
+  );
+
   await Hive.initFlutter();
   await HiveLocalDatasource.init();
   await di.init();

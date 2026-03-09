@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../../domain/entities/post_entity.dart';
@@ -67,6 +68,13 @@ class SearchPostsEvent extends PostEvent {
   SearchPostsEvent({required this.query, required this.userId});
 }
 
+class DeletePostEvent extends PostEvent {
+  final String postId;
+  DeletePostEvent({required this.postId});
+  @override
+  List<Object?> get props => [postId];
+}
+
 // States
 abstract class PostState extends Equatable {
   @override
@@ -105,6 +113,7 @@ class PostBloc extends Bloc<PostEvent, PostState> {
     on<LikeCommentEvent>(_onLikeComment);
     on<SearchPostsEvent>(_onSearch);
     on<SharePostEvent>(_onShare);
+    on<DeletePostEvent>(_onDelete);
   }
 
   Future<void> _onLoad(LoadPostsEvent event, Emitter<PostState> emit) async {
@@ -137,6 +146,7 @@ class PostBloc extends Bloc<PostEvent, PostState> {
           state is PostLoaded ? (state as PostLoaded).posts : <PostEntity>[];
       emit(PostLoaded(posts: [post, ...current]));
     } catch (e) {
+      debugPrint('PostBloc createPost error: $e');
       emit(PostError(e.toString()));
     }
   }
@@ -195,6 +205,19 @@ class PostBloc extends Bloc<PostEvent, PostState> {
   Future<void> _onSearch(
       SearchPostsEvent event, Emitter<PostState> emit) async {
     // handled in SearchBloc
+  }
+
+  Future<void> _onDelete(DeletePostEvent event, Emitter<PostState> emit) async {
+    try {
+      await repository.deletePost(event.postId);
+      if (state is PostLoaded) {
+        final posts = (state as PostLoaded)
+            .posts
+            .where((p) => p.id != event.postId)
+            .toList();
+        emit((state as PostLoaded).copyWith(posts: posts));
+      }
+    } catch (_) {}
   }
 
   void _updatePost(PostEntity updated, Emitter<PostState> emit) {

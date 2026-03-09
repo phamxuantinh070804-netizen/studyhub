@@ -13,6 +13,7 @@ class PostCardWidget extends StatelessWidget {
   final VoidCallback onComment;
   final VoidCallback onTapAuthor;
   final VoidCallback onShare;
+  final VoidCallback? onDelete;
 
   const PostCardWidget({
     super.key,
@@ -22,6 +23,7 @@ class PostCardWidget extends StatelessWidget {
     required this.onComment,
     required this.onTapAuthor,
     required this.onShare,
+    this.onDelete,
   });
 
   @override
@@ -54,7 +56,50 @@ class PostCardWidget extends StatelessWidget {
                 Icon(Icons.public, size: 12, color: Colors.grey.shade600),
               ],
             ),
-            trailing: const Icon(Icons.more_horiz),
+            trailing: PopupMenuButton<String>(
+              icon: const Icon(Icons.more_horiz),
+              onSelected: (value) {
+                if (value == 'delete' && onDelete != null) {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Xóa bài viết'),
+                      content: const Text(
+                          'Bạn có chắc chắn muốn xóa bài viết này không? Hành động này không thể hoàn tác.'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Hủy',
+                              style: TextStyle(color: Colors.grey)),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            onDelete!();
+                          },
+                          child: const Text('Xóa',
+                              style: TextStyle(color: Colors.red)),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              },
+              itemBuilder: (context) => [
+                if (post.authorId == currentUserId)
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                        SizedBox(width: 8),
+                        Text('Xóa bài viết',
+                            style: TextStyle(color: Colors.red)),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
           ),
           if (post.content != null && post.content!.isNotEmpty)
             Padding(

@@ -6,7 +6,8 @@ import '../../../core/theme/app_theme.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
-  @override State<RegisterPage> createState() => _RegisterPageState();
+  @override
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
 class _RegisterPageState extends State<RegisterPage> {
@@ -16,9 +17,12 @@ class _RegisterPageState extends State<RegisterPage> {
   final _confirmCtrl = TextEditingController();
   bool _obscure = true;
 
-  @override void dispose() {
-    _nameCtrl.dispose(); _emailCtrl.dispose();
-    _passCtrl.dispose(); _confirmCtrl.dispose();
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _passCtrl.dispose();
+    _confirmCtrl.dispose();
     super.dispose();
   }
 
@@ -35,7 +39,9 @@ class _RegisterPageState extends State<RegisterPage> {
       },
       child: Scaffold(
         appBar: AppBar(
-          leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
+          leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => context.pop()),
           title: const Text('Tạo tài khoản'),
         ),
         body: SafeArea(
@@ -46,33 +52,37 @@ class _RegisterPageState extends State<RegisterPage> {
               children: [
                 Center(
                   child: Container(
-                    width: 64, height: 64,
+                    width: 64,
+                    height: 64,
                     decoration: BoxDecoration(
                       color: AppTheme.primaryBlue,
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Icon(Icons.school, color: Colors.white, size: 36),
+                    child:
+                        const Icon(Icons.school, color: Colors.white, size: 36),
                   ),
                 ),
                 const SizedBox(height: 24),
                 const Text('Đăng ký nhanh và dễ dàng',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    style:
+                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
                 const Text('Kết nối với bạn bè và học hỏi cùng nhau',
-                  style: TextStyle(color: AppTheme.textGrey)),
+                    style: TextStyle(color: AppTheme.textGrey)),
                 const SizedBox(height: 24),
                 TextField(
                   controller: _nameCtrl,
                   decoration: const InputDecoration(
-                    labelText: 'Họ và tên', prefixIcon: Icon(Icons.badge_outlined)),
+                      labelText: 'Họ và tên',
+                      prefixIcon: Icon(Icons.badge_outlined)),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
-                    labelText: 'Email hoặc số di động',
-                    prefixIcon: Icon(Icons.alternate_email)),
+                      labelText: 'Địa chỉ Email',
+                      prefixIcon: Icon(Icons.alternate_email)),
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -82,7 +92,8 @@ class _RegisterPageState extends State<RegisterPage> {
                     labelText: 'Mật khẩu mới',
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
+                      icon: Icon(
+                          _obscure ? Icons.visibility_off : Icons.visibility),
                       onPressed: () => setState(() => _obscure = !_obscure),
                     ),
                   ),
@@ -92,8 +103,8 @@ class _RegisterPageState extends State<RegisterPage> {
                   controller: _confirmCtrl,
                   obscureText: _obscure,
                   decoration: const InputDecoration(
-                    labelText: 'Nhập lại mật khẩu',
-                    prefixIcon: Icon(Icons.lock_outline)),
+                      labelText: 'Nhập lại mật khẩu',
+                      prefixIcon: Icon(Icons.lock_outline)),
                 ),
                 const SizedBox(height: 24),
                 const Text(
@@ -107,8 +118,11 @@ class _RegisterPageState extends State<RegisterPage> {
                     return ElevatedButton(
                       onPressed: state is AuthLoading ? null : _register,
                       child: state is AuthLoading
-                          ? const SizedBox(height: 20, width: 20,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2))
                           : const Text('Đăng ký'),
                     );
                   },
@@ -128,17 +142,25 @@ class _RegisterPageState extends State<RegisterPage> {
     final confirm = _confirmCtrl.text;
     if (name.isEmpty || email.isEmpty || pass.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng điền đầy đủ thông tin')));
+          const SnackBar(content: Text('Vui lòng điền đầy đủ thông tin')));
+      return;
+    }
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
+    if (!emailRegex.hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Vui lòng nhập một địa chỉ email hợp lệ'),
+          backgroundColor: Colors.orange));
       return;
     }
     if (pass != confirm) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Mật khẩu không khớp'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Mật khẩu không khớp'), backgroundColor: Colors.red));
       return;
     }
     if (pass.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Mật khẩu phải có ít nhất 6 ký tự'), backgroundColor: Colors.orange));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Mật khẩu phải có ít nhất 6 ký tự'),
+          backgroundColor: Colors.orange));
       return;
     }
     context.read<AuthBloc>().add(RegisterEvent(name, email, pass));

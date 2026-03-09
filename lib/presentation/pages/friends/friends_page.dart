@@ -98,7 +98,7 @@ class _RequestsTab extends StatelessWidget {
         maxCrossAxisExtent: 220,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 0.65,
+        childAspectRatio: 0.60,
       ),
       itemCount: requests.length,
       itemBuilder: (context, i) => _FriendCard(
@@ -154,7 +154,7 @@ class _SuggestionsTab extends StatelessWidget {
         maxCrossAxisExtent: 220,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 0.65,
+        childAspectRatio: 0.60,
       ),
       itemCount: suggestions.length,
       itemBuilder: (context, i) => _FriendCard(
@@ -279,7 +279,7 @@ class _FriendCardState extends State<_FriendCard> {
           Expanded(
             flex: 2,
             child: Padding(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -13,6 +13,7 @@ import '../../widgets/post/post_card_widget.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/entities/user_entity.dart';
 import '../../../data/datasources/local/hive_local_datasource.dart';
+import '../../../data/datasources/remote/supabase_remote_datasource.dart';
 import '../../../injection_container.dart' as di;
 
 class ProfilePage extends StatefulWidget {
@@ -25,6 +26,66 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final _picker = ImagePicker();
+  UserEntity? _profileUser;
+  bool _isLoadingUser = true;
+  bool _isFriend = false;
+  bool _hasSent = false;
+  bool _hasPending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    final local = di.sl<HiveLocalDatasource>();
+    final auth = context.read<AuthBloc>().state;
+    final currentUser = auth is AuthAuthenticated ? auth.user : null;
+    final isMe = currentUser?.id == widget.userId;
+
+    if (isMe) {
+      if (mounted) {
+        setState(() {
+          _profileUser = currentUser;
+          _isLoadingUser = false;
+        });
+      }
+      return;
+    }
+
+    // Try local first
+    UserEntity? user = local.getUserById(widget.userId);
+
+    // Fetch from Supabase
+    try {
+      final remote = di.sl<SupabaseRemoteDatasource>();
+      final fetchedUser = await remote.getUserById(widget.userId);
+      if (fetchedUser != null) {
+        user = fetchedUser;
+        await local.saveUser(fetchedUser);
+      }
+
+      if (currentUser != null) {
+        final friends = await remote.getFriends(currentUser.id);
+        final requests = await remote.getFriendRequests(currentUser.id);
+        final sentRequests = await remote.getFriendRequests(widget.userId);
+
+        _isFriend = friends.any((u) => u.id == widget.userId);
+        _hasPending = requests.any((u) => u.id == widget.userId);
+        _hasSent = sentRequests.any((u) => u.id == currentUser.id);
+      }
+    } catch (e) {
+      debugPrint('Error fetching profile: $e');
+    }
+
+    if (mounted) {
+      setState(() {
+        _profileUser = user;
+        _isLoadingUser = false;
+      });
+    }
+  }
 
   void _showLogoutDialog(BuildContext context) {
     showDialog(
@@ -53,41 +114,58 @@ class _ProfilePageState extends State<ProfilePage> {
         await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
     if (file == null) return;
 
-    final updatedUser = isAvatar
-        ? user.copyWith(avatarUrl: file.path)
-        : user.copyWith(coverUrl: file.path);
+    // Upload to Supabase Storage
+    final remote = di.sl<SupabaseRemoteDatasource>();
+    String newUrl = '';
+    try {
+      final bytes = await file.readAsBytes();
+      newUrl = await remote.uploadProfileImageBytes(user.id, bytes, !isAvatar);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi tải ảnh lên: ${e.toString()}')));
+      }
+      return;
+    }
 
-    // Save to Hive
+    final updatedUser = isAvatar
+        ? user.copyWith(avatarUrl: newUrl)
+        : user.copyWith(coverUrl: newUrl);
+
+    // Save to Hive for fast local caching
     final local = di.sl<HiveLocalDatasource>();
     await local.saveUser(updatedUser);
 
     // Update AuthBloc state so UI updates everywhere
     if (mounted) {
       context.read<AuthBloc>().add(UpdateUserEvent(updatedUser));
+      // Refresh feed posts to grab the new avatar!
+      context.read<PostBloc>().add(LoadPostsEvent(refresh: true));
       setState(() {});
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final local = di.sl<HiveLocalDatasource>();
-    final profileUser = local.getUserById(widget.userId);
+    if (_isLoadingUser) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     final auth = context.watch<AuthBloc>().state;
     final currentUser = auth is AuthAuthenticated ? auth.user : null;
     final isMe = currentUser?.id == widget.userId;
 
     // Use current user from auth state if it's "me" to ensure live updates
-    final displayUser = isMe ? currentUser! : (profileUser ?? currentUser!);
+    final displayUser = isMe ? currentUser! : _profileUser;
 
-    if (profileUser == null && !isMe) {
+    if (displayUser == null && !isMe) {
       return const Scaffold(
           body: Center(child: Text('Không tìm thấy người dùng')));
     }
 
-    bool isFriend = currentUser?.isFriendWith(widget.userId) ?? false;
-    bool hasSent = currentUser?.hasSentRequestTo(widget.userId) ?? false;
-    bool hasPending =
-        currentUser?.hasPendingRequestFrom(widget.userId) ?? false;
+    bool isFriend = isMe ? false : _isFriend;
+    bool hasSent = isMe ? false : _hasSent;
+    bool hasPending = isMe ? false : _hasPending;
 
     return Scaffold(
       backgroundColor: AppTheme.bgGrey,
@@ -123,7 +201,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   onSelected: (value) {
                     if (value == 'logout') _showLogoutDialog(context);
                     if (value == 'update_cover' && isMe) {
-                      _updatePhoto(false, displayUser);
+                      _updatePhoto(false, displayUser!);
                     }
                   },
                   itemBuilder: (ctx) => [
@@ -166,13 +244,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     null, // Vô hiệu hóa đổi ảnh trực tiếp, dùng nút Chỉnh sửa
                 child: Container(
                   color: Colors.grey.shade300,
-                  child: displayUser.coverUrl != null
-                      ? ((displayUser.coverUrl!.startsWith('http') ||
-                              displayUser.coverUrl!.startsWith('blob:') ||
+                  child: displayUser?.coverUrl != null
+                      ? ((displayUser!.coverUrl!.startsWith('http') ||
+                              displayUser!.coverUrl!.startsWith('blob:') ||
                               kIsWeb)
-                          ? Image.network(displayUser.coverUrl!,
+                          ? Image.network(displayUser!.coverUrl!,
                               fit: BoxFit.cover)
-                          : Image.file(File(displayUser.coverUrl!),
+                          : Image.file(File(displayUser!.coverUrl!),
                               fit: BoxFit.cover))
                       : const DecoratedBox(
                           decoration: BoxDecoration(
@@ -199,8 +277,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     child: Stack(
                       children: [
                         AvatarWidget(
-                            name: displayUser.name,
-                            imageUrl: displayUser.avatarUrl,
+                            name: displayUser?.name ?? 'Unknown',
+                            imageUrl: displayUser?.avatarUrl,
                             radius: 44),
                         if (isMe)
                           Positioned(
@@ -233,15 +311,15 @@ class _ProfilePageState extends State<ProfilePage> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(displayUser.name,
+            Text(displayUser?.name ?? 'Người dùng',
                 style:
                     const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
             const SizedBox(height: 4),
-            Text('${displayUser.friendIds.length} bạn bè',
+            Text('${displayUser?.friendIds.length ?? 0} bạn bè',
                 style: const TextStyle(color: AppTheme.textGrey, fontSize: 14)),
-            if (displayUser.bio != null) ...[
+            if (displayUser?.bio != null) ...[
               const SizedBox(height: 8),
-              Text(displayUser.bio!, style: const TextStyle(fontSize: 15)),
+              Text(displayUser!.bio!, style: const TextStyle(fontSize: 15)),
             ],
             const SizedBox(height: 12),
             if (isMe)
@@ -269,7 +347,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             title: const Text('Chỉnh sửa ảnh đại diện'),
                             onTap: () {
                               Navigator.pop(ctx);
-                              _updatePhoto(true, displayUser);
+                              _updatePhoto(true, displayUser!);
                             },
                           ),
                           ListTile(
@@ -277,7 +355,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             title: const Text('Chỉnh sửa ảnh bìa'),
                             onTap: () {
                               Navigator.pop(ctx);
-                              _updatePhoto(false, displayUser);
+                              _updatePhoto(false, displayUser!);
                             },
                           ),
                         ],
@@ -296,7 +374,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 )),
               ])
             else
-              _buildFriendActions(context, displayUser, currentUser, isFriend,
+              _buildFriendActions(context, displayUser!, currentUser, isFriend,
                   hasSent, hasPending),
           ]),
         )),
@@ -364,6 +442,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     );
                   }
                 },
+                onDelete: () => context
+                    .read<PostBloc>()
+                    .add(DeletePostEvent(postId: userPosts[i].id)),
               ),
             ),
             childCount: userPosts.length,

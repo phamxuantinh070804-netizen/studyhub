@@ -1,6 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'data/datasources/local/hive_local_datasource.dart';
-import 'data/datasources/remote/fake_remote_datasource.dart';
+import 'data/datasources/remote/supabase_remote_datasource.dart';
 import 'data/repositories/auth_repository_impl.dart';
 import 'data/repositories/post_repository_impl.dart';
 import 'domain/repositories/auth_repository.dart';
@@ -19,8 +19,8 @@ final sl = GetIt.instance;
 
 Future<void> init() async {
   sl.registerLazySingleton<HiveLocalDatasource>(() => HiveLocalDatasource());
-  sl.registerLazySingleton<FakeRemoteDatasource>(
-      () => FakeRemoteDatasource(sl()));
+  sl.registerLazySingleton<SupabaseRemoteDatasource>(
+      () => SupabaseRemoteDatasource());
 
   sl.registerLazySingleton<AuthRepository>(
       () => AuthRepositoryImpl(remote: sl(), local: sl()));

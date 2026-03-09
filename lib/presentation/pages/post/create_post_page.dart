@@ -7,6 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/post/post_bloc.dart';
 import '../../widgets/common/avatar_widget.dart';
+import '../../../data/datasources/remote/supabase_remote_datasource.dart';
+import '../../../injection_container.dart' as di;
 
 class CreatePostPage extends StatefulWidget {
   const CreatePostPage({super.key});
@@ -215,13 +217,62 @@ class _CreatePostPageState extends State<CreatePostPage> {
   }
 
   Widget _buildMediaPreview() {
+    if (_mediaPaths.isEmpty) return const SizedBox.shrink();
+
+    if (_mediaPaths.length == 1) {
+      return Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              constraints: const BoxConstraints(maxHeight: 400),
+              width: double.infinity,
+              color: Colors.grey.shade100,
+              child: _mediaTypes[0] == 'video'
+                  ? Container(
+                      color: Colors.black,
+                      child: const Center(
+                          child: Icon(Icons.play_circle_fill,
+                              color: Colors.white, size: 50)))
+                  : (kIsWeb
+                      ? Image.network(_mediaPaths[0],
+                          fit: BoxFit.contain,
+                          width: double.infinity,
+                          height: double.infinity)
+                      : Image.file(File(_mediaPaths[0]),
+                          fit: BoxFit.contain,
+                          width: double.infinity,
+                          height: double.infinity)),
+            ),
+          ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: () => setState(() {
+                _mediaPaths.removeAt(0);
+                _mediaTypes.removeAt(0);
+              }),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(
+                    color: Colors.black54, shape: BoxShape.circle),
+                child: const Icon(Icons.close, color: Colors.white, size: 20),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: _mediaPaths.length == 2 ? 2 : 3,
         crossAxisSpacing: 4,
         mainAxisSpacing: 4,
+        childAspectRatio: 1.0,
       ),
       itemCount: _mediaPaths.length,
       itemBuilder: (_, i) => Stack(
@@ -233,7 +284,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
                     color: Colors.black,
                     child: const Center(
                         child: Icon(Icons.play_circle_fill,
-                            color: Colors.white, size: 40)))
+                            color: Colors.white, size: 30)))
                 : (kIsWeb
                     ? Image.network(_mediaPaths[i],
                         fit: BoxFit.cover,
@@ -300,23 +351,45 @@ class _CreatePostPageState extends State<CreatePostPage> {
     if (auth is! AuthAuthenticated) return;
     setState(() => _loading = true);
 
-    final urls = List<String>.from(_mediaPaths);
-    context.read<PostBloc>().add(CreatePostEvent(
-          authorId: auth.user.id,
-          authorName: auth.user.name,
-          authorAvatar: auth.user.avatarUrl,
-          content: _ctrl.text.trim().isEmpty ? null : _ctrl.text.trim(),
-          mediaUrls: urls,
-          mediaTypes: _mediaTypes,
-        ));
+    try {
+      // Upload media files to Supabase Storage first
+      final remote = di.sl<SupabaseRemoteDatasource>();
+      final List<String> uploadedUrls = [];
 
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (mounted) {
-      setState(() => _loading = false);
-      if (Navigator.canPop(context)) {
-        Navigator.pop(context);
-      } else {
-        context.go('/');
+      for (int i = 0; i < _mediaPaths.length; i++) {
+        final xFile = XFile(_mediaPaths[i]);
+        final bytes = await xFile.readAsBytes();
+        final ext = _mediaPaths[i].split('.').last.toLowerCase();
+        final url = await remote.uploadPostMediaBytes(auth.user.id, bytes, ext);
+        uploadedUrls.add(url);
+      }
+
+      if (!mounted) return;
+
+      context.read<PostBloc>().add(CreatePostEvent(
+            authorId: auth.user.id,
+            authorName: auth.user.name,
+            authorAvatar: auth.user.avatarUrl,
+            content: _ctrl.text.trim().isEmpty ? null : _ctrl.text.trim(),
+            mediaUrls: uploadedUrls,
+            mediaTypes: _mediaTypes,
+          ));
+
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted) {
+        setState(() => _loading = false);
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        } else {
+          context.go('/');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi đăng bài: ${e.toString()}')),
+        );
       }
     }
   }

@@ -5,7 +5,8 @@ import '../../blocs/auth/auth_bloc.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
-  @override State<LoginPage> createState() => _LoginPageState();
+  @override
+  State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
@@ -13,7 +14,8 @@ class _LoginPageState extends State<LoginPage> {
   final _passCtrl = TextEditingController();
   bool _obscure = true;
 
-  @override void dispose() {
+  @override
+  void dispose() {
     _emailCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
@@ -74,23 +76,27 @@ class _LoginPageState extends State<LoginPage> {
                       TextField(
                         controller: _emailCtrl,
                         decoration: InputDecoration(
-                          hintText: 'Số di động hoặc email',
+                          hintText: 'Địa chỉ Email',
                           hintStyle: const TextStyle(color: Color(0xFF898F9C)),
                           filled: true,
                           fillColor: const Color(0xFFF5F6F7),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFCCD0D5)),
+                            borderSide:
+                                const BorderSide(color: Color(0xFFCCD0D5)),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFCCD0D5)),
+                            borderSide:
+                                const BorderSide(color: Color(0xFFCCD0D5)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFF1877F2)),
+                            borderSide:
+                                const BorderSide(color: Color(0xFF1877F2)),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 18),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -104,20 +110,29 @@ class _LoginPageState extends State<LoginPage> {
                           fillColor: const Color(0xFFF5F6F7),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFCCD0D5)),
+                            borderSide:
+                                const BorderSide(color: Color(0xFFCCD0D5)),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFCCD0D5)),
+                            borderSide:
+                                const BorderSide(color: Color(0xFFCCD0D5)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFF1877F2)),
+                            borderSide:
+                                const BorderSide(color: Color(0xFF1877F2)),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 18),
                           suffixIcon: IconButton(
-                            icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility, color: const Color(0xFF898F9C)),
-                            onPressed: () => setState(() => _obscure = !_obscure),
+                            icon: Icon(
+                                _obscure
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: const Color(0xFF898F9C)),
+                            onPressed: () =>
+                                setState(() => _obscure = !_obscure),
                           ),
                         ),
                       ),
@@ -131,12 +146,21 @@ class _LoginPageState extends State<LoginPage> {
                               onPressed: state is AuthLoading ? null : _login,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF1877F2),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
                                 elevation: 0,
                               ),
                               child: state is AuthLoading
-                                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                  : const Text('Đăng nhập', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                          color: Colors.white, strokeWidth: 2))
+                                  : const Text('Đăng nhập',
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white)),
                             ),
                           );
                         },
@@ -144,7 +168,10 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 16),
                       TextButton(
                         onPressed: () => context.push('/forgot'),
-                        child: const Text('Quên mật khẩu?', style: TextStyle(color: Color(0xFF1877F2), fontWeight: FontWeight.w600)),
+                        child: const Text('Quên mật khẩu?',
+                            style: TextStyle(
+                                color: Color(0xFF1877F2),
+                                fontWeight: FontWeight.w600)),
                       ),
                     ],
                   ),
@@ -161,18 +188,27 @@ class _LoginPageState extends State<LoginPage> {
                           onPressed: () => context.push('/register'),
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Color(0xFF1877F2)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: const Text('Tạo tài khoản mới', style: TextStyle(color: Color(0xFF1877F2), fontWeight: FontWeight.bold)),
+                          child: const Text('Tạo tài khoản mới',
+                              style: TextStyle(
+                                  color: Color(0xFF1877F2),
+                                  fontWeight: FontWeight.bold)),
                         ),
                       ),
                       const SizedBox(height: 16),
                       const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.all_inclusive, size: 14, color: Color(0xFF898F9C)),
+                          Icon(Icons.all_inclusive,
+                              size: 14, color: Color(0xFF898F9C)),
                           SizedBox(width: 4),
-                          Text('StudyHub', style: TextStyle(color: Color(0xFF898F9C), fontWeight: FontWeight.bold, fontSize: 14)),
+                          Text('StudyHub',
+                              style: TextStyle(
+                                  color: Color(0xFF898F9C),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14)),
                         ],
                       ),
                     ],
@@ -194,6 +230,13 @@ class _LoginPageState extends State<LoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vui lòng nhập đầy đủ thông tin')),
       );
+      return;
+    }
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
+    if (!emailRegex.hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Vui lòng nhập một địa chỉ email hợp lệ'),
+          backgroundColor: Colors.orange));
       return;
     }
     context.read<AuthBloc>().add(LoginEvent(email, pass));

@@ -191,6 +191,9 @@ class _HomePageState extends State<HomePage> {
                               );
                             }
                           },
+                          onDelete: () => context
+                              .read<PostBloc>()
+                              .add(DeletePostEvent(postId: post.id)),
                         );
                       },
                     ))
