@@ -158,7 +158,7 @@ class _ProfilePageState extends State<ProfilePage> {
     // Use current user from auth state if it's "me" to ensure live updates
     final displayUser = isMe ? currentUser! : _profileUser;
 
-    if (displayUser == null && !isMe) {
+    if (displayUser == null) {
       return const Scaffold(
           body: Center(child: Text('Không tìm thấy người dùng')));
     }
@@ -201,7 +201,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   onSelected: (value) {
                     if (value == 'logout') _showLogoutDialog(context);
                     if (value == 'update_cover' && isMe) {
-                      _updatePhoto(false, displayUser!);
+                      _updatePhoto(false, displayUser);
                     }
                   },
                   itemBuilder: (ctx) => [
@@ -244,13 +244,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     null, // Vô hiệu hóa đổi ảnh trực tiếp, dùng nút Chỉnh sửa
                 child: Container(
                   color: Colors.grey.shade300,
-                  child: displayUser?.coverUrl != null
-                      ? ((displayUser!.coverUrl!.startsWith('http') ||
-                              displayUser!.coverUrl!.startsWith('blob:') ||
+                  child: displayUser.coverUrl != null
+                      ? ((displayUser.coverUrl!.startsWith('http') ||
+                              displayUser.coverUrl!.startsWith('blob:') ||
                               kIsWeb)
-                          ? Image.network(displayUser!.coverUrl!,
+                          ? Image.network(displayUser.coverUrl!,
                               fit: BoxFit.cover)
-                          : Image.file(File(displayUser!.coverUrl!),
+                          : Image.file(File(displayUser.coverUrl!),
                               fit: BoxFit.cover))
                       : const DecoratedBox(
                           decoration: BoxDecoration(
@@ -277,8 +277,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     child: Stack(
                       children: [
                         AvatarWidget(
-                            name: displayUser?.name ?? 'Unknown',
-                            imageUrl: displayUser?.avatarUrl,
+                            name: displayUser.name,
+                            imageUrl: displayUser.avatarUrl,
                             radius: 44),
                         if (isMe)
                           Positioned(
@@ -311,15 +311,15 @@ class _ProfilePageState extends State<ProfilePage> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(displayUser?.name ?? 'Người dùng',
+            Text(displayUser.name,
                 style:
                     const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
             const SizedBox(height: 4),
-            Text('${displayUser?.friendIds.length ?? 0} bạn bè',
+            Text('${displayUser.friendIds.length} bạn bè',
                 style: const TextStyle(color: AppTheme.textGrey, fontSize: 14)),
-            if (displayUser?.bio != null) ...[
+            if (displayUser.bio != null) ...[
               const SizedBox(height: 8),
-              Text(displayUser!.bio!, style: const TextStyle(fontSize: 15)),
+              Text(displayUser.bio!, style: const TextStyle(fontSize: 15)),
             ],
             const SizedBox(height: 12),
             if (isMe)
@@ -347,7 +347,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             title: const Text('Chỉnh sửa ảnh đại diện'),
                             onTap: () {
                               Navigator.pop(ctx);
-                              _updatePhoto(true, displayUser!);
+                              _updatePhoto(true, displayUser);
                             },
                           ),
                           ListTile(
@@ -355,7 +355,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             title: const Text('Chỉnh sửa ảnh bìa'),
                             onTap: () {
                               Navigator.pop(ctx);
-                              _updatePhoto(false, displayUser!);
+                              _updatePhoto(false, displayUser);
                             },
                           ),
                         ],
@@ -374,7 +374,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 )),
               ])
             else
-              _buildFriendActions(context, displayUser!, currentUser, isFriend,
+              _buildFriendActions(context, displayUser, currentUser, isFriend,
                   hasSent, hasPending),
           ]),
         )),
