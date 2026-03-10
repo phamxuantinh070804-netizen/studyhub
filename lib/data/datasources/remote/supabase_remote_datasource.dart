@@ -754,4 +754,8 @@ class SupabaseRemoteDatasource {
       createdAt: DateTime.parse(data['created_at']),
     );
   }
+
+  Future<void> deleteMessage(String messageId) async {
+    await _supabase.from('messages').delete().eq('id', messageId);
+  }
 }

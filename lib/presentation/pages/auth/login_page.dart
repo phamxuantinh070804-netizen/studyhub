@@ -166,6 +166,34 @@ class _LoginPageState extends State<LoginPage> {
                         },
                       ),
                       const SizedBox(height: 16),
+                      // Facebook Login Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            context.read<AuthBloc>().add(FacebookLoginEvent());
+                          },
+                          icon: const Icon(Icons.facebook,
+                              color: Colors.white, size: 24),
+                          label: const Text(
+                            'Đăng nhập bằng Facebook',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1877F2),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       TextButton(
                         onPressed: () => context.push('/forgot'),
                         child: const Text('Quên mật khẩu?',

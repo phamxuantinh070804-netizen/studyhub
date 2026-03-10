@@ -61,6 +61,26 @@ class _HomePageState extends State<HomePage> {
               icon: Icons.add_circle,
               onTap: () => context.push('/create-post')),
           _CircleButton(
+              icon: Icons.facebook,
+              onTap: () {
+                final auth = context.read<AuthBloc>().state;
+                if (auth is AuthAuthenticated) {
+                  context
+                      .read<PostBloc>()
+                      .add(SyncFacebookPostsEvent(userId: auth.user.id));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Đang đồng bộ bài viết từ Facebook...')),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content:
+                            Text('Vui lòng đăng nhập bằng Facebook trước')),
+                  );
+                }
+              }),
+          _CircleButton(
               icon: Icons.search, onTap: () => context.push('/search')),
           _CircleButton(
               icon: Icons.messenger, onTap: () => context.push('/chat')),

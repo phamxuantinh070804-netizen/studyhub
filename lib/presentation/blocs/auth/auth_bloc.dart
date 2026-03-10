@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import '../../../domain/entities/user_entity.dart';
 import '../../../domain/usecases/auth/login_usecase.dart';
 import '../../../data/datasources/local/hive_local_datasource.dart';
@@ -31,6 +32,8 @@ class RegisterEvent extends AuthEvent {
 }
 
 class LogoutEvent extends AuthEvent {}
+
+class FacebookLoginEvent extends AuthEvent {}
 
 class SyncDataEvent extends AuthEvent {
   final String userId;
@@ -91,6 +94,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<LogoutEvent>(_onLogout);
     on<UpdateUserEvent>(_onUpdateUser);
     on<SyncDataEvent>(_onSyncData);
+    on<FacebookLoginEvent>(_onFacebookLogin);
   }
 
   Future<void> _onSyncData(SyncDataEvent event, Emitter<AuthState> emit) async {
@@ -189,5 +193,78 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   void _onUpdateUser(UpdateUserEvent event, Emitter<AuthState> emit) {
     emit(AuthAuthenticated(event.user));
+  }
+
+  Future<void> _onFacebookLogin(
+      FacebookLoginEvent event, Emitter<AuthState> emit) async {
+    emit(AuthLoading());
+    try {
+      // Step 1: Trigger Facebook Login with user_posts permission
+      final LoginResult result = await FacebookAuth.instance.login(
+        permissions: ['email', 'public_profile', 'user_posts'],
+      );
+
+      if (result.status == LoginStatus.cancelled) {
+        emit(AuthUnauthenticated());
+        return;
+      }
+
+      if (result.status != LoginStatus.success) {
+        emit(AuthError('Đăng nhập Facebook thất bại'));
+        return;
+      }
+
+      // Save FB access token for Graph API sync
+      final fbAccessToken = result.accessToken?.token ?? '';
+      if (fbAccessToken.isNotEmpty) {
+        local.saveFbAccessToken(fbAccessToken);
+      }
+
+      // Step 2: Get user data from Facebook
+      final userData = await FacebookAuth.instance.getUserData(
+        fields: 'name,email,picture.width(200)',
+      );
+
+      final String fbId = userData['id'] ?? '';
+      final String fbName = userData['name'] ?? 'Facebook User';
+      final String fbEmail = userData['email'] ?? '$fbId@facebook.com';
+      final String? fbAvatar = userData['picture']?['data']?['url'];
+
+      // Step 3: Check if user already exists in local DB by email
+      final allUsers = local.getAllUsers();
+      UserEntity? existingUser;
+      for (final u in allUsers) {
+        if (u.email == fbEmail) {
+          existingUser = u;
+          break;
+        }
+      }
+
+      if (existingUser != null) {
+        // Update avatar from FB if needed
+        final updated = existingUser.copyWith(
+          avatarUrl: fbAvatar ?? existingUser.avatarUrl,
+          name: existingUser.name.isEmpty ? fbName : existingUser.name,
+        );
+        await local.saveUser(updated);
+        await local.setCurrentUserId(updated.id);
+        emit(AuthAuthenticated(updated));
+      } else {
+        // Create new user from Facebook data
+        final newUser = UserEntity(
+          id: 'fb_$fbId',
+          name: fbName,
+          email: fbEmail,
+          avatarUrl: fbAvatar,
+          createdAt: DateTime.now(),
+        );
+        await local.saveUser(newUser);
+        await local.setCurrentUserId(newUser.id);
+        emit(AuthAuthenticated(newUser));
+      }
+    } catch (e) {
+      debugPrint('Facebook Login Error: $e');
+      emit(AuthError('Lỗi đăng nhập Facebook: ${e.toString()}'));
+    }
   }
 }

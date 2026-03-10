@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/post/post_bloc.dart';
 import '../../widgets/common/avatar_widget.dart';
@@ -22,6 +23,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
   final List<String> _mediaPaths = [];
   final List<String> _mediaTypes = [];
   bool _loading = false;
+  bool _shareToFb = false;
 
   @override
   void dispose() {
@@ -204,6 +206,9 @@ class _CreatePostPageState extends State<CreatePostPage> {
                     const SizedBox(height: 16),
                     // Media Preview
                     if (_mediaPaths.isNotEmpty) _buildMediaPreview(),
+                    const SizedBox(height: 16),
+                    // Facebook share toggle
+                    _buildFacebookToggle(),
                   ],
                 ),
               ),
@@ -316,6 +321,52 @@ class _CreatePostPageState extends State<CreatePostPage> {
     );
   }
 
+  Widget _buildFacebookToggle() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: _shareToFb ? const Color(0xFFE7F3FF) : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: _shareToFb ? const Color(0xFF1877F2) : Colors.grey.shade300,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.facebook,
+              color: _shareToFb ? const Color(0xFF1877F2) : Colors.grey,
+              size: 28),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Chia sẻ lên Facebook',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color:
+                        _shareToFb ? const Color(0xFF1877F2) : Colors.black87,
+                  ),
+                ),
+                Text(
+                  'Tự động mở chia sẻ sau khi đăng',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: _shareToFb,
+            onChanged: (v) => setState(() => _shareToFb = v),
+            activeTrackColor: const Color(0xFF1877F2),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBottomToolBar() {
     return Container(
       padding: EdgeInsets.only(
@@ -376,6 +427,20 @@ class _CreatePostPageState extends State<CreatePostPage> {
           ));
 
       await Future.delayed(const Duration(milliseconds: 500));
+
+      // Auto-share to Facebook if toggle is on
+      if (_shareToFb && mounted) {
+        final content = _ctrl.text.trim();
+        final url = uploadedUrls.isNotEmpty ? uploadedUrls.first : null;
+        if (url != null && url.isNotEmpty) {
+          await SharePlus.instance
+              .share(ShareParams(text: '$content\n\n$url', title: 'StudyHub'));
+        } else if (content.isNotEmpty) {
+          await SharePlus.instance
+              .share(ShareParams(text: content, title: 'StudyHub'));
+        }
+      }
+
       if (mounted) {
         setState(() => _loading = false);
         if (Navigator.canPop(context)) {

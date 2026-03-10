@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:video_player/video_player.dart';
 import '../../../domain/entities/post_entity.dart';
@@ -25,6 +26,54 @@ class PostCardWidget extends StatelessWidget {
     required this.onShare,
     this.onDelete,
   });
+
+  void _showShareOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.share, color: Color(0xFF1877F2)),
+                title: const Text('Chia sẻ lên StudyHub'),
+                onTap: () {
+                  Navigator.pop(context);
+                  onShare();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.facebook, color: Colors.blue),
+                title: const Text(
+                    'Chia sẻ qua ứng dụng khác (Facebook, Messenger...)'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final content = post.content ?? '';
+                  final url =
+                      post.mediaUrls.isNotEmpty ? post.mediaUrls.first : null;
+
+                  if (url != null && url.isNotEmpty) {
+                    await SharePlus.instance.share(
+                        ShareParams(text: '$content \n\nXem thêm tại: $url'));
+                  } else {
+                    await SharePlus.instance.share(ShareParams(
+                        text: content.isNotEmpty
+                            ? content
+                            : 'Chia sẻ bài viết từ StudyHub',
+                        title: 'StudyHub'));
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -152,7 +201,7 @@ class PostCardWidget extends StatelessWidget {
               _ActionButton(
                 icon: Icons.share_outlined,
                 label: 'Chia sẻ',
-                onTap: onShare,
+                onTap: () => _showShareOptions(context),
               ),
             ],
           ),

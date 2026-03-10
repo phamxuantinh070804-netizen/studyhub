@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../blocs/auth/auth_bloc.dart';
@@ -96,6 +97,74 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
+  void _showMessageOptions(
+      BuildContext context, String messageId, String content, bool isMe) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isMe)
+                ListTile(
+                  leading: const Icon(Icons.delete_outline, color: Colors.red),
+                  title: const Text('Xóa tin nhắn',
+                      style: TextStyle(color: Colors.red)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _confirmDelete(messageId);
+                  },
+                ),
+              ListTile(
+                leading: const Icon(Icons.copy_outlined),
+                title: const Text('Sao chép'),
+                onTap: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  Navigator.pop(context);
+                  await Clipboard.setData(ClipboardData(text: content));
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Đã sao chép tin nhắn')),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _confirmDelete(String messageId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Xóa tin nhắn?'),
+        content: const Text('Tin nhắn này sẽ bị xóa khỏi cuộc trò chuyện.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () {
+              context.read<ChatBloc>().add(DeleteMessageEvent(
+                    messageId: messageId,
+                    currentUserId: _currentUserId,
+                    otherUserId: widget.otherUserId,
+                  ));
+              Navigator.pop(context);
+            },
+            child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -170,26 +239,32 @@ class _ChatPageState extends State<ChatPage> {
                       return Align(
                         alignment:
                             isMe ? Alignment.centerRight : Alignment.centerLeft,
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: isMe
-                                ? AppTheme.primaryBlue
-                                : Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(16).copyWith(
-                              bottomRight:
-                                  isMe ? const Radius.circular(0) : null,
-                              bottomLeft:
-                                  !isMe ? const Radius.circular(0) : null,
+                        child: GestureDetector(
+                          onLongPress: () {
+                            _showMessageOptions(
+                                context, msg.id, msg.content, isMe);
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: isMe
+                                  ? AppTheme.primaryBlue
+                                  : Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(16).copyWith(
+                                bottomRight:
+                                    isMe ? const Radius.circular(0) : null,
+                                bottomLeft:
+                                    !isMe ? const Radius.circular(0) : null,
+                              ),
                             ),
-                          ),
-                          child: Text(
-                            msg.content,
-                            style: TextStyle(
-                              color: isMe ? Colors.white : Colors.black87,
-                              fontSize: 15,
+                            child: Text(
+                              msg.content,
+                              style: TextStyle(
+                                color: isMe ? Colors.white : Colors.black87,
+                                fontSize: 15,
+                              ),
                             ),
                           ),
                         ),

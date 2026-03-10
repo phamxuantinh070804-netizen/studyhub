@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">StudyHub</string>
+    <string name="facebook_app_id">1478699860494618</string>
+    <string name="fb_login_protocol_scheme">fb1478699860494618</string>
+    <string name="facebook_client_token">dc5369ed04e62bd9406106b86385db1b</string>
+</resources>

@@ -63,6 +63,12 @@ class HiveLocalDatasource {
   String? getCurrentUserId() => _settings.get(_currentUserKey);
   Future<void> clearCurrentUser() => _settings.delete(_currentUserKey);
 
+  // ── Facebook Token ────────────────────────────────────────────────────────
+  Future<void> saveFbAccessToken(String token) =>
+      _settings.put('fb_access_token', token);
+  String? getFbAccessToken() => _settings.get('fb_access_token');
+  Future<void> clearFbAccessToken() => _settings.delete('fb_access_token');
+
   UserEntity? getUserById(String id) {
     final data = _users.get(id);
     if (data == null) return null;
@@ -138,6 +144,8 @@ class HiveLocalDatasource {
         a.createdAt.compareTo(b.createdAt)); // Oldest first for chat UI
     return list;
   }
+
+  Future<void> deleteMessage(String messageId) => _messages.delete(messageId);
 
   // ── JSON helpers ──────────────────────────────────────────────────────────
   Map<String, dynamic> _userToJson(UserEntity u) => {

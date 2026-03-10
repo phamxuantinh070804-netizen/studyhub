@@ -3,6 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../../domain/entities/post_entity.dart';
 import '../../../domain/repositories/post_repository.dart';
+import '../../../data/services/facebook_sync_service.dart';
+import '../../../data/datasources/local/hive_local_datasource.dart';
+import '../../../injection_container.dart' as di;
 
 // Events
 abstract class PostEvent extends Equatable {
@@ -75,6 +78,11 @@ class DeletePostEvent extends PostEvent {
   List<Object?> get props => [postId];
 }
 
+class SyncFacebookPostsEvent extends PostEvent {
+  final String userId;
+  SyncFacebookPostsEvent({required this.userId});
+}
+
 // States
 abstract class PostState extends Equatable {
   @override
@@ -114,6 +122,7 @@ class PostBloc extends Bloc<PostEvent, PostState> {
     on<SearchPostsEvent>(_onSearch);
     on<SharePostEvent>(_onShare);
     on<DeletePostEvent>(_onDelete);
+    on<SyncFacebookPostsEvent>(_onSyncFacebook);
   }
 
   Future<void> _onLoad(LoadPostsEvent event, Emitter<PostState> emit) async {
@@ -227,6 +236,42 @@ class PostBloc extends Bloc<PostEvent, PostState> {
           .map((p) => p.id == updated.id ? updated : p)
           .toList();
       emit((state as PostLoaded).copyWith(posts: posts));
+    }
+  }
+
+  Future<void> _onSyncFacebook(
+      SyncFacebookPostsEvent event, Emitter<PostState> emit) async {
+    try {
+      final local = di.sl<HiveLocalDatasource>();
+      final fbToken = local.getFbAccessToken();
+
+      if (fbToken == null || fbToken.isEmpty) {
+        debugPrint(
+            'No Facebook access token found. Please login with Facebook first.');
+        return;
+      }
+
+      final user = local.getUserById(event.userId);
+      if (user == null) return;
+
+      final syncService = FacebookSyncService(accessToken: fbToken);
+      final fbPosts = await syncService.fetchFacebookPosts(
+        fbUserId: event.userId.replaceFirst('fb_', ''),
+        fbUserName: user.name,
+        fbUserAvatar: user.avatarUrl,
+      );
+
+      // Save FB posts to local and merge into current feed
+      for (final post in fbPosts) {
+        await local.savePost(post);
+      }
+
+      // Reload all posts to include FB synced ones
+      _page = 1;
+      final allPosts = await repository.getPosts(page: 1);
+      emit(PostLoaded(posts: allPosts, hasMore: allPosts.length >= 10));
+    } catch (e) {
+      debugPrint('Facebook Sync Error: $e');
     }
   }
 }

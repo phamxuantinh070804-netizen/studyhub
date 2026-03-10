@@ -17,6 +17,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   }) : super(ChatInitial()) {
     on<LoadMessagesEvent>(_onLoadMessages);
     on<SendMessageEvent>(_onSendMessage);
+    on<DeleteMessageEvent>(_onDeleteMessage);
   }
 
   Future<void> _onLoadMessages(
@@ -124,6 +125,23 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
             .toList();
         emit(ChatLoaded(updatedMessages));
       }
+    } catch (e) {
+      emit(ChatError(e.toString()));
+    }
+  }
+
+  Future<void> _onDeleteMessage(
+      DeleteMessageEvent event, Emitter<ChatState> emit) async {
+    try {
+      // Optimitic update
+      if (state is ChatLoaded) {
+        final current = (state as ChatLoaded).messages;
+        final updated = current.where((m) => m.id != event.messageId).toList();
+        emit(ChatLoaded(updated));
+      }
+
+      await localDatasource.deleteMessage(event.messageId);
+      await remoteDatasource.deleteMessage(event.messageId);
     } catch (e) {
       emit(ChatError(e.toString()));
     }

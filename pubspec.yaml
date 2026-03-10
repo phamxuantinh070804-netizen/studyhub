@@ -29,6 +29,9 @@ dependencies:
   video_player_win: ^3.2.2
   dartz: ^0.10.1
   supabase_flutter: ^2.12.0
+  share_plus: ^12.0.1
+  flutter_facebook_auth: ^6.0.4
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:
