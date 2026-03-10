@@ -18,7 +18,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          # Cập nhật lên 3.22.0 để thỏa mãn http 1.6.0 (Dart 3.4.0)
+          # Sử dụng bản 3.22.0 để tránh lỗi Dart SDK với thư viện http
           flutter-version: '3.22.0' 
           channel: 'stable'
           cache: true
@@ -33,13 +33,14 @@ jobs:
           cd ..
 
       - name: Build iOS (No Sign)
-        run: flutter build ios --release --no-codesign
+        # Thêm tham số CODE_SIGNING_ALLOWED=NO để bỏ qua lỗi đòi Team ID của Apple
+        run: flutter build ios --release --no-codesign CODE_SIGNING_ALLOWED=NO
 
-      # Sideloadly cần file .ipa. Bước này nén Runner.app thành Runner.ipa
       - name: Create IPA Structure
+        # Sideloadly cần cấu hình Payload để nhận diện ứng dụng
         run: |
           mkdir -p build/ios/iphoneos/Payload
-          mv build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
+          cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
           cd build/ios/iphoneos
           zip -r studyhub_app.ipa Payload
           cd ../../..
