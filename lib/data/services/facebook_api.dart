@@ -7,7 +7,7 @@ class FacebookApi {
   static const String _pageId = '2024756361440176';
 
   // Token "Không bao giờ hết hạn" bạn vừa lấy được (Dán toàn bộ mã xanh vào đây)
-  static const String _pageAccessToken = 'DÁN_TOÀN_BỘ_MÃ_MÀU_XANH_VÀO_ĐÂY';
+  static const String _pageAccessToken = 'EAAcxgVOuK7ABQZCLJ06WnaP4dtxZCDCU9scJRFNpQ1NNHr6sveaSRRQO1PutEdmOs9dobQnaYuyVtZA6UmpCQPYjr34N2qg61Eko2bOSJw49sBCLlbZALOsfzUiuxOGjNZAq9KHFskwm0QXkZBD6AZAmsfJJFYdCNA5khORRs9kdecRi0yQ5q3ZBwZAzzYZBzwwYMHZAVDB';
 
   /// Hàm gửi bài viết lên Fanpage
   static Future<bool> postToFanpage(String message) async {
