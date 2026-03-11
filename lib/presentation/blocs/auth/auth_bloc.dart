@@ -201,7 +201,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       // Step 1: Trigger Facebook Login with user_posts permission
       final LoginResult result = await FacebookAuth.instance.login(
-        permissions: ['email', 'public_profile', 'user_posts'],
+        permissions: ['public_profile', 'email'],
       );
 
       if (result.status == LoginStatus.cancelled) {
