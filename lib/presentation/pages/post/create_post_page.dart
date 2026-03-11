@@ -478,7 +478,11 @@ class _CreatePostPageState extends State<CreatePostPage> {
       // Handle direct Fanpage posting via FacebookApi
       if (_postToTarot) {
         try {
-          await FacebookApi.postToFanpage(_ctrl.text.trim());
+          await FacebookApi.postToFanpage(
+            _ctrl.text.trim(),
+            mediaPaths: _mediaPaths,
+            mediaTypes: _mediaTypes,
+          );
         } catch (e) {
           debugPrint('CreatePostPage Tarot Fanpage error: $e');
         }
