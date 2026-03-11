@@ -90,4 +90,29 @@ class FacebookSyncService {
       rethrow;
     }
   }
+
+  /// Đăng bài lên Facebook cá nhân
+  Future<void> publishPost({String? message, String? link}) async {
+    try {
+      final url = Uri.parse('https://graph.facebook.com/v19.0/me/feed');
+      final response = await http.post(
+        url,
+        body: {
+          'message': message ?? '',
+          if (link != null) 'link': link,
+          'access_token': accessToken,
+        },
+      );
+
+      if (response.statusCode != 200) {
+        debugPrint('Facebook Publish Error: ${response.body}');
+        throw Exception(
+            'Không thể đăng bài lên Facebook (${response.statusCode})');
+      }
+      debugPrint('Facebook Publish Success: ${response.body}');
+    } catch (e) {
+      debugPrint('FacebookSyncService Publish Error: $e');
+      rethrow;
+    }
+  }
 }

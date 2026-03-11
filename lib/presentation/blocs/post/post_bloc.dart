@@ -22,6 +22,7 @@ class CreatePostEvent extends PostEvent {
   final String authorId, authorName;
   final String? authorAvatar, content;
   final List<String> mediaUrls, mediaTypes;
+  final bool shareToFacebook;
   CreatePostEvent({
     required this.authorId,
     required this.authorName,
@@ -29,6 +30,7 @@ class CreatePostEvent extends PostEvent {
     this.content,
     this.mediaUrls = const [],
     this.mediaTypes = const [],
+    this.shareToFacebook = false,
   });
 }
 
@@ -151,6 +153,28 @@ class PostBloc extends Bloc<PostEvent, PostState> {
         mediaUrls: event.mediaUrls,
         mediaTypes: event.mediaTypes,
       );
+
+      // Auto-share to Facebook if requested
+      if (event.shareToFacebook) {
+        try {
+          final local = di.sl<HiveLocalDatasource>();
+          final fbToken = local.getFbAccessToken();
+          if (fbToken != null && fbToken.isNotEmpty) {
+            final fbService = FacebookSyncService(accessToken: fbToken);
+            String? link;
+            if (event.mediaUrls.isNotEmpty) {
+              link = event.mediaUrls.first;
+            }
+            await fbService.publishPost(
+              message: event.content,
+              link: link,
+            );
+          }
+        } catch (fbErr) {
+          debugPrint('PostBloc Facebook auto-share error: $fbErr');
+        }
+      }
+
       final current =
           state is PostLoaded ? (state as PostLoaded).posts : <PostEntity>[];
       emit(PostLoaded(posts: [post, ...current]));

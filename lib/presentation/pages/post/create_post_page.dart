@@ -424,22 +424,10 @@ class _CreatePostPageState extends State<CreatePostPage> {
             content: _ctrl.text.trim().isEmpty ? null : _ctrl.text.trim(),
             mediaUrls: uploadedUrls,
             mediaTypes: _mediaTypes,
+            shareToFacebook: _shareToFb,
           ));
 
       await Future.delayed(const Duration(milliseconds: 500));
-
-      // Auto-share to Facebook if toggle is on
-      if (_shareToFb && mounted) {
-        final content = _ctrl.text.trim();
-        final url = uploadedUrls.isNotEmpty ? uploadedUrls.first : null;
-        if (url != null && url.isNotEmpty) {
-          await SharePlus.instance
-              .share(ShareParams(text: '$content\n\n$url', title: 'StudyHub'));
-        } else if (content.isNotEmpty) {
-          await SharePlus.instance
-              .share(ShareParams(text: content, title: 'StudyHub'));
-        }
-      }
 
       if (mounted) {
         setState(() => _loading = false);
