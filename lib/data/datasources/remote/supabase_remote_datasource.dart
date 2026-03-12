@@ -162,20 +162,6 @@ class SupabaseRemoteDatasource {
     return user;
   }
 
-  Future<void> upsertUser(UserEntity user) async {
-    await _supabase.from('users').upsert({
-      'id': user.id,
-      'name': user.name,
-      'email': user.email,
-      'avatar_url': user.avatarUrl,
-      'phone': user.phone,
-      'bio': user.bio,
-      'location': user.location,
-      'cover_url': user.coverUrl,
-      'created_at': user.createdAt.toIso8601String(),
-    });
-  }
-
   Future<String> uploadProfileImage(
       String userId, String filePath, bool isCover) async {
     final fileName = '${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
