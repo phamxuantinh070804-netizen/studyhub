@@ -248,6 +248,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         );
         await local.saveUser(updated);
         await local.setCurrentUserId(updated.id);
+        
+        // Sync to remote DB
+        final remote = di.sl<SupabaseRemoteDatasource>();
+        await remote.upsertUser(updated);
+        
         emit(AuthAuthenticated(updated));
       } else {
         // Create new user from Facebook data
@@ -260,6 +265,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         );
         await local.saveUser(newUser);
         await local.setCurrentUserId(newUser.id);
+        
+        // Sync to remote DB
+        final remote = di.sl<SupabaseRemoteDatasource>();
+        await remote.upsertUser(newUser);
+        
         emit(AuthAuthenticated(newUser));
       }
     } catch (e) {

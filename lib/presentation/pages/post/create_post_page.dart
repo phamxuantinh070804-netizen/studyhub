@@ -8,6 +8,7 @@ import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/post/post_bloc.dart';
 import '../../widgets/common/avatar_widget.dart';
 import '../../../data/datasources/remote/supabase_remote_datasource.dart';
+import '../../../data/services/facebook_api.dart';
 import '../../../injection_container.dart' as di;
 
 class CreatePostPage extends StatefulWidget {
@@ -23,6 +24,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
   final List<String> _mediaTypes = [];
   bool _loading = false;
   bool _shareToFb = false;
+  bool _postToTarot = false;
 
   @override
   void dispose() {
@@ -208,6 +210,9 @@ class _CreatePostPageState extends State<CreatePostPage> {
                     const SizedBox(height: 16),
                     // Facebook share toggle
                     _buildFacebookToggle(),
+                    const SizedBox(height: 12),
+                    // Tarot To Key Fanpage toggle
+                    _buildTarotFanpageToggle(),
                   ],
                 ),
               ),
@@ -366,6 +371,50 @@ class _CreatePostPageState extends State<CreatePostPage> {
     );
   }
 
+  Widget _buildTarotFanpageToggle() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: _postToTarot ? const Color(0xFFFFF7E6) : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: _postToTarot ? Colors.orange : Colors.grey.shade300,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.campaign,
+              color: _postToTarot ? Colors.orange : Colors.grey, size: 28),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Đăng lên Fanpage TAROT TO KEY',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: _postToTarot ? Colors.orange.shade800 : Colors.black87,
+                  ),
+                ),
+                Text(
+                  'Sử dụng token Fanpage để đăng bài trực tiếp',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: _postToTarot,
+            onChanged: (v) => setState(() => _postToTarot = v),
+            activeTrackColor: Colors.orange,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBottomToolBar() {
     return Container(
       padding: EdgeInsets.only(
@@ -425,6 +474,19 @@ class _CreatePostPageState extends State<CreatePostPage> {
             mediaTypes: _mediaTypes,
             shareToFacebook: _shareToFb,
           ));
+
+      // Handle direct Fanpage posting via FacebookApi
+      if (_postToTarot) {
+        try {
+          await FacebookApi.postToFanpage(
+            _ctrl.text.trim(),
+            mediaPaths: _mediaPaths,
+            mediaTypes: _mediaTypes,
+          );
+        } catch (e) {
+          debugPrint('CreatePostPage Tarot Fanpage error: $e');
+        }
+      }
 
       await Future.delayed(const Duration(milliseconds: 500));
 
